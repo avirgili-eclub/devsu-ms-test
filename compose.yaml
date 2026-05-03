@@ -1,1 +1,39 @@
-services: {}
+services:
+
+  postgres-msidentity:
+    image: postgres:16-alpine
+    container_name: postgres-msidentity
+    environment:
+      POSTGRES_DB: msidentity_db
+      POSTGRES_USER: msidentity_user
+      POSTGRES_PASSWORD: msidentity_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_msidentity_data:/var/lib/postgresql/data
+
+  postgres-msfinance:
+    image: postgres:16-alpine
+    container_name: postgres-msfinance
+    environment:
+      POSTGRES_DB: msfinance_db
+      POSTGRES_USER: msfinance_user
+      POSTGRES_PASSWORD: msfinance_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_msfinance_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin_pass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  postgres_msidentity_data:
+  postgres_msfinance_data:
