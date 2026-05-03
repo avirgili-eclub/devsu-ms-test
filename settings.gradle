@@ -1,1 +1,3 @@
-rootProject.name = 'msone'
+rootProject.name = 'devsu-ms-test'
+include 'msidentity'
+include 'msfinance'
