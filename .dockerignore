@@ -1,0 +1,8 @@
+.git
+.claude
+.atl
+.gradle
+build
+msidentity/build
+msfinance/build
+*.md

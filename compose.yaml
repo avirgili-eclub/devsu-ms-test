@@ -11,6 +11,11 @@ services:
       - "5435:5432"
     volumes:
       - postgres_msidentity_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msidentity_user -d msidentity_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-msfinance:
     image: postgres:16-alpine
@@ -23,6 +28,11 @@ services:
       - "5434:5432"
     volumes:
       - postgres_msfinance_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msfinance_user -d msfinance_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -33,6 +43,51 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  msidentity:
+    build:
+      context: .
+      dockerfile: msidentity/Dockerfile
+    container_name: msidentity
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-msidentity:5432/msidentity_db
+      SPRING_DATASOURCE_USERNAME: msidentity_user
+      SPRING_DATASOURCE_PASSWORD: msidentity_pass
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin_pass
+    depends_on:
+      postgres-msidentity:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  msfinance:
+    build:
+      context: .
+      dockerfile: msfinance/Dockerfile
+    container_name: msfinance
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-msfinance:5432/msfinance_db
+      SPRING_DATASOURCE_USERNAME: msfinance_user
+      SPRING_DATASOURCE_PASSWORD: msfinance_pass
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin_pass
+    depends_on:
+      postgres-msfinance:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres_msidentity_data:
