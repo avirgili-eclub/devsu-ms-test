@@ -38,6 +38,6 @@ public class MovementRepositoryAdapter implements MovementRepository {
 
     @Override
     public List<Movement> findByClientIdAndDateBetween(Long clientId, LocalDateTime from, LocalDateTime to) {
-        return jpa.findByAccount_ClientIdAndDateBetween(clientId, from, to);
+        return jpa.findByClientIdAndDateRange(clientId, from, to);
     }
 }
