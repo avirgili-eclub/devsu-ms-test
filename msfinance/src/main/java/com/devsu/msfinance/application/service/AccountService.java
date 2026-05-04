@@ -4,6 +4,7 @@ import com.devsu.msfinance.domain.exception.AccountNotFoundException;
 import com.devsu.msfinance.domain.model.Account;
 import com.devsu.msfinance.domain.port.in.AccountUseCase;
 import com.devsu.msfinance.domain.port.out.AccountRepository;
+import com.devsu.msfinance.domain.port.out.MovementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class AccountService implements AccountUseCase {
 
     private final AccountRepository accountRepository;
+    private final MovementRepository movementRepository;
 
     @Override
     public Account create(Account account) {
@@ -45,8 +47,10 @@ public class AccountService implements AccountUseCase {
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
         getById(id);
+        movementRepository.deleteByAccountId(id);
         accountRepository.deleteById(id);
     }
 
