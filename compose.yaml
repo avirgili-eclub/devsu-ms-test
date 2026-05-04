@@ -4,15 +4,15 @@ services:
     image: postgres:16-alpine
     container_name: postgres-msidentity
     environment:
-      POSTGRES_DB: msidentity_db
-      POSTGRES_USER: msidentity_user
-      POSTGRES_PASSWORD: msidentity_pass
+      POSTGRES_DB: ${POSTGRES_MSIDENTITY_DB}
+      POSTGRES_USER: ${POSTGRES_MSIDENTITY_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_MSIDENTITY_PASSWORD}
     ports:
       - "5435:5432"
     volumes:
       - postgres_msidentity_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U msidentity_user -d msidentity_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MSIDENTITY_USER} -d ${POSTGRES_MSIDENTITY_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,15 +21,15 @@ services:
     image: postgres:16-alpine
     container_name: postgres-msfinance
     environment:
-      POSTGRES_DB: msfinance_db
-      POSTGRES_USER: msfinance_user
-      POSTGRES_PASSWORD: msfinance_pass
+      POSTGRES_DB: ${POSTGRES_MSFINANCE_DB}
+      POSTGRES_USER: ${POSTGRES_MSFINANCE_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_MSFINANCE_PASSWORD}
     ports:
       - "5434:5432"
     volumes:
       - postgres_msfinance_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U msfinance_user -d msfinance_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MSFINANCE_USER} -d ${POSTGRES_MSFINANCE_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -38,11 +38,13 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin_pass
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
@@ -57,12 +59,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-msidentity:5432/msidentity_db
-      SPRING_DATASOURCE_USERNAME: msidentity_user
-      SPRING_DATASOURCE_PASSWORD: msidentity_pass
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-msidentity:5432/${POSTGRES_MSIDENTITY_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_MSIDENTITY_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_MSIDENTITY_PASSWORD}
       SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_USERNAME: admin
-      SPRING_RABBITMQ_PASSWORD: admin_pass
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     depends_on:
       postgres-msidentity:
         condition: service_healthy
@@ -77,12 +79,12 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-msfinance:5432/msfinance_db
-      SPRING_DATASOURCE_USERNAME: msfinance_user
-      SPRING_DATASOURCE_PASSWORD: msfinance_pass
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-msfinance:5432/${POSTGRES_MSFINANCE_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_MSFINANCE_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_MSFINANCE_PASSWORD}
       SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_USERNAME: admin
-      SPRING_RABBITMQ_PASSWORD: admin_pass
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     depends_on:
       postgres-msfinance:
         condition: service_healthy
@@ -92,3 +94,4 @@ services:
 volumes:
   postgres_msidentity_data:
   postgres_msfinance_data:
+  rabbitmq_data:
