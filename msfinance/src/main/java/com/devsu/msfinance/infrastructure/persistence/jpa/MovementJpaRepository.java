@@ -19,6 +19,4 @@ public interface MovementJpaRepository extends JpaRepository<Movement, Long> {
             @Param("clientId") Long clientId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
-
-    void deleteByAccount_Id(Long accountId);
 }

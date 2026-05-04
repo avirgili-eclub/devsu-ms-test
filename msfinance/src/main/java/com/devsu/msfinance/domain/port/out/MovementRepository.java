@@ -17,6 +17,4 @@ public interface MovementRepository {
     List<Movement> findByAccountId(Long accountId);
 
     List<Movement> findByClientIdAndDateBetween(Long clientId, LocalDateTime from, LocalDateTime to);
-
-    void deleteByAccountId(Long accountId);
 }

@@ -40,9 +40,4 @@ public class MovementRepositoryAdapter implements MovementRepository {
     public List<Movement> findByClientIdAndDateBetween(Long clientId, LocalDateTime from, LocalDateTime to) {
         return jpa.findByClientIdAndDateRange(clientId, from, to);
     }
-
-    @Override
-    public void deleteByAccountId(Long accountId) {
-        jpa.deleteByAccount_Id(accountId);
-    }
 }

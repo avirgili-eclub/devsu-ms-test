@@ -6,7 +6,6 @@ import com.devsu.msfinance.domain.model.Account;
 import com.devsu.msfinance.domain.port.in.AccountUseCase;
 import com.devsu.msfinance.domain.port.out.AccountRepository;
 import com.devsu.msfinance.domain.port.out.KnownClientRepository;
-import com.devsu.msfinance.domain.port.out.MovementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,6 @@ import java.util.UUID;
 public class AccountService implements AccountUseCase {
 
     private final AccountRepository accountRepository;
-    private final MovementRepository movementRepository;
     private final KnownClientRepository knownClientRepository;
 
     @Override
@@ -53,11 +51,10 @@ public class AccountService implements AccountUseCase {
     }
 
     @Override
-    @Transactional
     public void deleteById(Long id) {
-        getById(id);
-        movementRepository.deleteByAccountId(id);
-        accountRepository.deleteById(id);
+        Account account = getById(id);
+        account.setStatus(false);
+        accountRepository.save(account);
     }
 
     @Override
