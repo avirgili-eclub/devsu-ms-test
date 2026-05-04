@@ -31,7 +31,7 @@ public class Movement {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal balance;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 }
