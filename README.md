@@ -176,6 +176,7 @@ msidentity/src/main/resources/db/migration/
 msfinance/src/main/resources/db/migration/
 ├── V1__create_account_movement_tables.sql
 └── V2__create_processed_events_table.sql
+└── V3__create_known_clients_table.sql
 ```
 
 El schema completo consolidado está disponible en [`BaseDatos.sql`](BaseDatos.sql).
