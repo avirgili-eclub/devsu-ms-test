@@ -59,3 +59,8 @@ CREATE TABLE processed_event (
     event_id     VARCHAR(36) PRIMARY KEY,
     processed_at TIMESTAMP   NOT NULL
 );
+
+CREATE TABLE known_client (
+    client_id BIGINT NOT NULL,
+    CONSTRAINT pk_known_client PRIMARY KEY (client_id)
+);
