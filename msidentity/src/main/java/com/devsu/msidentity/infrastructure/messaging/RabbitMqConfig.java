@@ -11,7 +11,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMqConfig {
 
-    public static final String CLIENT_EVENTS_EXCHANGE = "devsu.client.events";
+    public static final String CLIENT_EVENTS_EXCHANGE     = "devsu.client.events";
+    public static final String CLIENT_CREATED_ROUTING_KEY = "client.created";
     public static final String CLIENT_DELETED_ROUTING_KEY = "client.deleted";
 
     @Bean

@@ -1,5 +1,6 @@
 package com.devsu.msidentity.infrastructure.messaging;
 
+import com.devsu.msidentity.infrastructure.messaging.event.ClientCreatedEvent;
 import com.devsu.msidentity.infrastructure.messaging.event.ClientDeletedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,24 @@ import java.util.UUID;
 public class ClientEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
+
+    public void publishClientCreated(Long clientId) {
+        ClientCreatedEvent event = new ClientCreatedEvent(
+                UUID.randomUUID().toString(),
+                clientId,
+                LocalDateTime.now()
+        );
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMqConfig.CLIENT_EVENTS_EXCHANGE,
+                    RabbitMqConfig.CLIENT_CREATED_ROUTING_KEY,
+                    event
+            );
+            log.info("Published ClientCreatedEvent: eventId={}, clientId={}", event.eventId(), clientId);
+        } catch (Exception e) {
+            log.error("Failed to publish ClientCreatedEvent for clientId={}: {}", clientId, e.getMessage());
+        }
+    }
 
     public void publishClientDeleted(Long clientId) {
         ClientDeletedEvent event = new ClientDeletedEvent(

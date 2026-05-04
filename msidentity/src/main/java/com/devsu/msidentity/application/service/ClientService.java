@@ -28,7 +28,9 @@ public class ClientService implements ClientUseCase {
         }
         client.setClientId(UUID.randomUUID().toString());
         client.setPassword(passwordEncoder.encode(client.getPassword()));
-        return clientRepository.save(client);
+        Client saved = clientRepository.save(client);
+        eventPublisher.publishClientCreated(saved.getId());
+        return saved;
     }
 
     @Override

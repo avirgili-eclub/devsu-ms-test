@@ -3,6 +3,7 @@ package com.devsu.msfinance.infrastructure.rest;
 import com.devsu.msfinance.domain.exception.AccountNotFoundException;
 import com.devsu.msfinance.domain.exception.InsufficientFundsException;
 import com.devsu.msfinance.domain.exception.MovementNotFoundException;
+import com.devsu.msfinance.domain.exception.UnknownClientException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,6 +18,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({AccountNotFoundException.class, MovementNotFoundException.class})
     public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UnknownClientException.class)
+    public ResponseEntity<Map<String, String>> handleUnknownClient(UnknownClientException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", ex.getMessage()));
     }
 
