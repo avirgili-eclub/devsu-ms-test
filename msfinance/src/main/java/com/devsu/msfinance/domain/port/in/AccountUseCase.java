@@ -15,4 +15,6 @@ public interface AccountUseCase {
     Account update(Long id, Account account);
 
     void deleteById(Long id);
+
+    void deactivateByClientId(Long clientId);
 }

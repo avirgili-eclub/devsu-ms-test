@@ -16,4 +16,6 @@ public interface AccountRepository {
     void deleteById(Long id);
 
     boolean existsByAccountNumber(String accountNumber);
+
+    List<Account> findByClientId(Long clientId);
 }

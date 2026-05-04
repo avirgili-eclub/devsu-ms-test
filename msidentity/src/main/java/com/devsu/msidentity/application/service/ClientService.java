@@ -4,6 +4,7 @@ import com.devsu.msidentity.domain.exception.ClientNotFoundException;
 import com.devsu.msidentity.domain.model.Client;
 import com.devsu.msidentity.domain.port.in.ClientUseCase;
 import com.devsu.msidentity.domain.port.out.ClientRepository;
+import com.devsu.msidentity.infrastructure.messaging.ClientEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class ClientService implements ClientUseCase {
 
     private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClientEventPublisher eventPublisher;
 
     @Override
     public Client create(Client client) {
@@ -58,7 +60,8 @@ public class ClientService implements ClientUseCase {
 
     @Override
     public void deleteById(Long id) {
-        getById(id);
+        Client client = getById(id);
         clientRepository.deleteById(id);
+        eventPublisher.publishClientDeleted(client.getId());
     }
 }

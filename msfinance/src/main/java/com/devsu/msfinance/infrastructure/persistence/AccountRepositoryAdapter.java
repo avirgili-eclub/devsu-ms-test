@@ -39,4 +39,9 @@ public class AccountRepositoryAdapter implements AccountRepository {
     public boolean existsByAccountNumber(String accountNumber) {
         return jpa.existsByAccountNumber(accountNumber);
     }
+
+    @Override
+    public List<Account> findByClientId(Long clientId) {
+        return jpa.findByClientId(clientId);
+    }
 }

@@ -6,6 +6,7 @@ import com.devsu.msfinance.domain.port.in.AccountUseCase;
 import com.devsu.msfinance.domain.port.out.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,5 +48,14 @@ public class AccountService implements AccountUseCase {
     public void deleteById(Long id) {
         getById(id);
         accountRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void deactivateByClientId(Long clientId) {
+        accountRepository.findByClientId(clientId).forEach(account -> {
+            account.setStatus(false);
+            accountRepository.save(account);
+        });
     }
 }
