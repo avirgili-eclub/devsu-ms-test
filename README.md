@@ -35,75 +35,80 @@ domain/model               ← entidades puras
 domain/port/in             ← contratos de entrada (use cases)
 domain/port/out            ← contratos de salida (repositorios)
 infrastructure/persistence ← adaptadores JPA + Spring Data
+infrastructure/messaging   ← publishers y consumers de RabbitMQ
 infrastructure/config      ← SecurityConfig, OpenApiConfig
 ```
+
+### Comunicación entre servicios
+
+La comunicación entre `msidentity` y `msfinance` es **asíncrona vía RabbitMQ**:
+
+- Al eliminar un cliente en `msidentity`, se publica un `ClientDeletedEvent`
+- `msfinance` consume el evento y desactiva todas las cuentas asociadas al cliente
+- Se implementan: DLQ (Dead Letter Queue), reintentos con backoff exponencial e idempotencia por `eventId`
 
 ---
 
 ## Prerrequisitos
 
-- Java 21
-- Docker Desktop (recomendado) **o** PostgreSQL + RabbitMQ instalados localmente
-- IntelliJ IDEA (cualquier edición)
+- Docker Desktop
 
 ---
 
-## Levantar localmente
+## Levantar con Docker Compose (recomendado)
 
-### Opción 1 — Docker Compose (recomendado)
+Copiá el archivo de variables de entorno y ajustá las credenciales si es necesario:
+
+```bash
+cp .env.example .env
+```
 
 Desde la raíz del proyecto:
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-Esto levanta tres containers:
+Esto construye las imágenes y levanta cinco containers:
 
 | Container | Puerto host | Descripción |
 |---|---|---|
 | `postgres-msidentity` | `5435` | Base de datos de msidentity |
 | `postgres-msfinance` | `5434` | Base de datos de msfinance |
 | `rabbitmq` | `5672` / `15672` | Broker de mensajes / UI de gestión |
+| `msidentity` | `8080` | Servicio de identidad |
+| `msfinance` | `8081` | Servicio financiero |
+
+Las tablas se crean automáticamente al primer arranque gracias a **Flyway** — no se requiere ningún paso manual de base de datos.
 
 > **¿Por qué 5435 y 5434 y no 5432/5433?**
-> En Windows es común tener PostgreSQL instalado como servicio nativo en el puerto `5432`. Docker no puede reclamar ese puerto si ya está ocupado. Para evitar la colisión se mapearon los containers a `5435` y `5434`. Si tu máquina no tiene PostgreSQL instalado localmente podés cambiar los puertos en [`compose.yaml`](compose.yaml) y en los `application.properties` correspondientes.
+> En Windows es común tener PostgreSQL instalado como servicio nativo en el puerto `5432`. Para evitar la colisión los containers usan `5435` y `5434`. Si tu máquina no tiene PostgreSQL local podés cambiar los puertos en [`compose.yaml`](compose.yaml).
 
-Una vez que los containers están corriendo, levantá cada servicio desde IntelliJ (ver más abajo). Las tablas se crean automáticamente al primer arranque gracias a `spring.jpa.hibernate.ddl-auto=update`.
+### Resetear la base de datos
+
+Para borrar todos los datos y volver a aplicar las migraciones desde cero:
+
+```bash
+docker compose down -v && docker compose up -d --build
+```
 
 ---
 
-### Opción 2 — PostgreSQL y RabbitMQ locales (sin Docker)
+## Levantar en modo desarrollo (IntelliJ IDEA)
 
-Si ya tenés PostgreSQL y RabbitMQ instalados en tu máquina, creá las bases de datos y usuarios manualmente:
+Útil para debugging. En este modo solo la infraestructura corre en Docker y las apps se ejecutan directamente en la JVM local.
 
-**msidentity**
-```sql
-CREATE USER msidentity_user WITH PASSWORD 'msidentity_pass';
-CREATE DATABASE msidentity_db OWNER msidentity_user;
+**Paso 1** — Levantá solo la infraestructura:
+
+```bash
+docker compose up -d postgres-msidentity postgres-msfinance rabbitmq
 ```
 
-**msfinance**
-```sql
-CREATE USER msfinance_user WITH PASSWORD 'msfinance_pass';
-CREATE DATABASE msfinance_db OWNER msfinance_user;
-```
+**Paso 2** — Abrí [`msidentity/.../MsidentityApplication.java`](msidentity/src/main/java/com/devsu/msidentity/MsidentityApplication.java) y hacé click en el ícono ▶ verde. IntelliJ crea la run configuration automáticamente.
 
-RabbitMQ debe estar corriendo con usuario `admin` / contraseña `admin_pass`, o actualizá los valores en los `application.properties`.
+**Paso 3** — Repetí lo mismo con [`msfinance/.../MsfinanceApplication.java`](msfinance/src/main/java/com/devsu/msfinance/MsfinanceApplication.java).
 
----
-
-## Correr desde IntelliJ IDEA
-
-Al ser un multi-project build, IntelliJ detecta **dos aplicaciones Spring Boot independientes**. No hay un único entry point — cada microservicio tiene el suyo.
-
-**Paso 1** — Abrí [`msidentity/.../MsidentityApplication.java`](msidentity/src/main/java/com/devsu/msidentity/MsidentityApplication.java) y hacé click en el ícono ▶ verde al lado del método `main`. IntelliJ crea la run configuration automáticamente.
-
-**Paso 2** — Repetí lo mismo con [`msfinance/.../MsfinanceApplication.java`](msfinance/src/main/java/com/devsu/msfinance/MsfinanceApplication.java).
-
-Ahora tenés **dos run configurations independientes** en el dropdown de IntelliJ. Podés correr o debuggear cada servicio por separado.
-
-> ⚠️ **Importante:** IntelliJ corre las apps directamente en Windows, por lo que `localhost` resuelve al stack de red de Windows. Si tenés PostgreSQL instalado localmente en el puerto `5432`, la app va a intentar conectarse ahí en lugar del container Docker. La solución es usar Docker Compose con los puertos `5435`/`5434` como se describió arriba.
+> ⚠️ **Importante:** IntelliJ corre las apps directamente en Windows. Si tenés PostgreSQL instalado localmente en el puerto `5432`, la app va a intentar conectarse ahí en lugar del container Docker. Usá los puertos `5435`/`5434` como se describió arriba.
 
 ---
 
@@ -119,15 +124,31 @@ Ahora tenés **dos run configurations independientes** en el dropdown de Intelli
 
 ---
 
+## Importar la colección en Postman
+
+### Opción A — Usar los archivos incluidos en el repositorio
+
+En la carpeta [`docs/`](docs/) se encuentran las especificaciones OpenAPI de ambos servicios:
+
+- [`docs/msidentity-api.json`](docs/msidentity-api.json)
+- [`docs/msfinance-api.json`](docs/msfinance-api.json)
+
+En Postman: **Import** → seleccioná ambos archivos → se crean las colecciones automáticamente.
+
+### Opción B — Exportar en vivo desde los servicios
+
+Con los servicios corriendo, abrí estas URLs en el browser y guardá el JSON:
+
+- `http://localhost:8080/v3/api-docs` → guardalo como `msidentity-api.json`
+- `http://localhost:8081/v3/api-docs` → guardalo como `msfinance-api.json`
+
+En Postman: **Import** → seleccioná los archivos descargados.
+
+---
+
 ## Resolución de conflictos de puerto
 
-Si `docker compose up -d` falla con:
-
-```
-Error response from daemon: Bind for 0.0.0.0:5434 failed: port is already allocated
-```
-
-Significa que ese puerto está ocupado en tu máquina. Cambiá el puerto host en [`compose.yaml`](compose.yaml):
+Si `docker compose up` falla con `port is already allocated`, cambiá el puerto host en [`compose.yaml`](compose.yaml):
 
 ```yaml
 # antes
@@ -136,43 +157,48 @@ Significa que ese puerto está ocupado en tu máquina. Cambiá el puerto host en
 - "5436:5432"
 ```
 
-Y actualizá el `application.properties` del servicio correspondiente:
+Y actualizá el valor correspondiente en [`.env`](.env.example):
 
-```properties
-# msfinance/src/main/resources/application.properties
-spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/msfinance_db}
+```env
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5436/msfinance_db
 ```
 
 ---
 
-## Nota sobre migraciones de base de datos
+## Migraciones de base de datos
 
-Actualmente ambos servicios usan `spring.jpa.hibernate.ddl-auto=update`. Hibernate crea y actualiza las tablas automáticamente al arrancar. Implementar migrations es overkill y no estaba contenplado en el test.Esto es suficiente para desarrollo, pero tiene limitaciones importantes:
-
-
-| Operación | `ddl-auto=update` |
-|---|---|
-| Agregar columna nueva | ✅ la crea |
-| Eliminar columna del código | ❌ la deja en la DB |
-| Renombrar columna | ❌ crea una nueva, deja la vieja |
-| Migrar datos existentes | ❌ no sabe nada de los datos |
-
-Para un entorno productivo la solución correcta es **Flyway**: archivos SQL versionados que se ejecutan en orden y se registran en una tabla de historial.
+Ambos servicios usan **Flyway** para gestionar el schema. Al arrancar, Flyway aplica automáticamente los scripts versionados en orden:
 
 ```
-db/migration/
-├── V1__create_person_client_tables.sql
-├── V2__create_account_movement_tables.sql
-└── V3__add_index_on_client_identification.sql
+msidentity/src/main/resources/db/migration/
+└── V1__create_person_client_tables.sql
+
+msfinance/src/main/resources/db/migration/
+├── V1__create_account_movement_tables.sql
+└── V2__create_processed_events_table.sql
 ```
 
-Con Flyway activo, `ddl-auto` debe cambiarse a `validate` o `none`.
+El schema completo consolidado está disponible en [`BaseDatos.sql`](BaseDatos.sql).
+
+---
+
+## Correr los tests
+
+```bash
+./gradlew test
+```
+
+Corre los tests de ambos servicios. Los tests usan H2 en memoria — no requieren Docker ni base de datos externa.
 
 ---
 
 ## Estado del proyecto
 
-- [x] `msidentity` — dominio, servicio, persistencia, REST, Swagger
-- [ ] `msfinance` — en construcción (dominio completo, application + REST pendientes)
-- [ ] Comunicación entre servicios vía RabbitMQ
-- [ ] Docker Compose para levantar ambos microservicios completos
+- [x] `msidentity` — dominio, servicio, persistencia, REST, Swagger, tests
+- [x] `msfinance` — dominio, servicio, persistencia, REST, Swagger
+- [x] Comunicación asíncrona vía RabbitMQ (DLQ, retries, idempotencia)
+- [x] Flyway migrations
+- [x] Docker Compose — stack completo (infra + microservicios)
+- [x] Prueba unitaria — `ClientServiceTest`
+- [x] Prueba de integración — `ClientControllerIT`
+- [x] `BaseDatos.sql`
